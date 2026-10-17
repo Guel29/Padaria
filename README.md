@@ -17,7 +17,7 @@ Na tela inicial, escolha **Entrar na demonstração**. Os campos de login mostra
 
 ## Funcionalidades desta etapa
 
-- Entrada direta pelo número da comanda no tablet, sem painel de cards. São 25 comandas iniciais e seis atendimentos fictícios.
+- Cards para selecionar as comandas no tablet, sem os indicadores superiores de quantidade. São 25 comandas iniciais e seis atendimentos fictícios.
 - Seleção de novo pedido/pedido feito, catálogo por categoria e busca.
 - Quantidade mínima 1, proteção de toque repetido, resumo e lançamentos separados por horário.
 - Edição com confirmação, remoção com quantidade zero, totais em centavos e histórico de alterações.
@@ -36,8 +36,8 @@ Após a aprovação visual, implementar backend compartilhado, transações, cha
 
 ## Validação visual
 
-1. Entrar na demonstração; informar uma comanda entre 01 e a quantidade configurada na administração.
-2. Informar uma comanda livre → Novo pedido → adicionar produtos e consultar resumo.
+1. Entrar na demonstração; selecionar um card de comanda.
+2. Tocar em uma comanda livre → Novo pedido → adicionar produtos e consultar resumo.
 3. Adicionar o mesmo produto novamente e conferir linhas/horários separados.
 4. Recarregar e conferir persistência; editar e remover um lançamento.
 5. Conferir que não existe ação de pagamento ou encerramento na área do atendente.
@@ -106,4 +106,4 @@ Faturamento confirmado, produto mais vendido, ticket médio de vendas e históri
 
 ## Fluxo do tablet
 
-A área do atendente não possui mais painel/lista de comandas ou indicadores administrativos. Após o login, informe o número da comanda e toque em Continuar atendimento. A numeração é validada contra a quantidade configurada na administração. Comandas ocupadas oferecem Novo pedido/Pedido feito, preservando lançamentos anteriores. Use Trocar comanda para atender outro número. O dashboard permanece somente em `#admin`.
+O atendente seleciona a comanda tocando diretamente nos cards numerados, com cores verde (livre) e amarelo (em atendimento), filtros de estado e quatro colunas no tablet horizontal. Foram removidos somente os indicadores superiores de quantidade total, livres e em atendimento. Não há campo para digitar número. Os pedidos e a administração permanecem preservados.
