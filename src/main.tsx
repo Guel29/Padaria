@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './style.css';
+import './bakery-theme.css';
 async function mount() {
   if (import.meta.env.DEV) {
     const { prepareDevPreview } = await import('./dev-preview');
