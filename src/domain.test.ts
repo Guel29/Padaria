@@ -29,3 +29,19 @@ test('corrige atendimentos vazios já salvos, preservando histórico sem arquiva
  const s:State={visits:[{id:'old',number:1,items:[],changes:[]}],archive:[]};
  const fixed=releaseEmptyVisits(s);assert.equal(fixed.visits.length,0);assert.equal(fixed.archive.length,1);assert.equal(releaseEmptyVisits(fixed).archive.length,1);
 });
+
+import { dashboardMetrics, localDay } from './dashboard.ts';
+test('dashboard distingue lançamentos, posição em aberto e cancelamentos por período de Brasília',()=>{
+ const i={...item('dash'),time:'2026-10-18T01:30:00.000Z'};
+ const state:State={visits:[{id:'open',number:1,items:[i],changes:[]}],archive:[{id:'cancelled',number:2,items:[],changes:[{item:'Café',before:1,after:0,time:'2026-10-17T15:00:00.000Z',attendant:'000001'}],cancelledAt:'2026-10-17T15:00:00.000Z'}]};
+ assert.equal(localDay(i.time),'2026-10-17');
+ const metrics=dashboardMetrics(state,'2026-10-17','2026-10-17');assert.equal(metrics.entries,1);assert.equal(metrics.launchedValue,900);assert.equal(metrics.openValue,900);assert.equal(metrics.openAverage,900);assert.equal(metrics.cancelled,1);assert.equal(metrics.edits,1);assert.equal(metrics.products[0].quantity,2);
+ const next=dashboardMetrics(state,'2026-10-18','2026-10-18');assert.equal(next.entries,0);assert.equal(next.launchedValue,0);assert.equal(next.openValue,900);assert.equal(next.cancelled,0);
+ const noData=dashboardMetrics(empty(),'','');assert.equal(noData.openAverage,0);assert.deepEqual(noData.days,[]);
+});
+test('dashboard filtra faixas de horário do dia em Brasília',()=>{
+ const s:State={visits:[{id:'v',number:1,changes:[],items:[{...item('morning'),time:'2026-10-17T12:00:00Z'},{...item('afternoon'),time:'2026-10-17T18:00:00Z'}]}],archive:[]};
+ assert.equal(dashboardMetrics(s,'2026-10-17','2026-10-17','06:00','11:59').entries,1);
+ assert.equal(dashboardMetrics(s,'2026-10-17','2026-10-17','12:00','17:59').entries,1);
+ assert.equal(dashboardMetrics(s,'2026-10-17','2026-10-17','18:00','23:59').entries,0);
+});

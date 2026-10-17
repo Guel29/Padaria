@@ -95,3 +95,11 @@ A administração permite acompanhar comandas, consultar lançamentos e históri
 As alterações do catálogo, identidade e quantidade de comandas aparecem no atendimento do mesmo navegador e persistem em `padaria-settings-v1`. Não alteram preços/nomes/unidades dos lançamentos anteriores. Imagens locais aceitam PNG/JPEG/WebP de até 1 MB por arquivo, sujeitas ao limite total de armazenamento do navegador. Falhas de gravação são exibidas sem confirmar sucesso. Alterações não são compartilhadas entre dispositivos.
 
 O cadastro de atendentes não autentica códigos, senhas ou permissões; a sessão de atendimento continua demonstrativa. A seção Relatórios resume quantidades e valores lançados, sem tratar esses valores como faturamento ou vendas confirmadas. Ativação individual de comandas, autenticação segura, permissões efetivas, senhas com hash e sincronização exigem a próxima etapa com backend.
+
+## Dashboard administrativo
+
+O painel em `#admin` reúne comandas livres/ocupadas, taxa de ocupação, valores em aberto e ticket médio das comandas abertas. Os filtros de data, hora inicial e final, hoje/7/30 dias, manhã/tarde/noite usam `America/Sao_Paulo`. As faixas são aplicadas a cada dia do período. Para intervalos que cruzam meia-noite, consulte duas faixas separadas.
+
+Os indicadores de pedidos incluem valor dos itens após correções, número de lançamentos, cancelamentos sem itens, correções, gráfico diário, produtos mais pedidos por quantidade de lançamentos e movimentações recentes. Peso e unidades não são somados como se fossem a mesma medida. Os cartões de comandas abertas são a posição atual e independem do filtro.
+
+Faturamento confirmado, produto mais vendido, ticket médio de vendas e histórico de vendas estão identificados como **aguardando PDV**. Não há recebimentos confirmados armazenados; os campos exibem indisponibilidade, não zero e não receita inventada. Estes indicadores somente poderão ser preenchidos após integrar uma fonte oficial de vendas/pagamentos do PDV e definir tratamento de cancelamentos e estornos.
