@@ -1,3 +1,5 @@
+**Download pronto para Hostinger:** [padaria-hostinger.zip](https://github.com/Guel29/Padaria/raw/refs/heads/main/downloads/padaria-hostinger.zip). Não envie o ZIP de Code → Download ZIP diretamente para a hospedagem: ele contém o código-fonte. A instalação usa o conteúdo de `public_html` do pacote compilado e a pasta privada conforme [HOSTINGER.md](HOSTINGER.md).
+
 ## Versão Hostinger — PHP + MySQL
 
 Para instalar em **https://padaria.instara.com.br**, siga [HOSTINGER.md](HOSTINGER.md). Gere o pacote com `npm run build:hostinger`: frontend na raiz, API PHP e configuração privada fora da pasta pública. Esta versão usa contas criadas na instalação, sessões no servidor e pedidos compartilhados. Os logins fictícios abaixo pertencem somente à demonstração do GitHub Pages. A instalação no servidor não foi executada por este ambiente.

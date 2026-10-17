@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => {
       workbox: {
         cleanupOutdatedCaches: true,
         navigateFallback: `${base}index.html`,
-        navigateFallbackDenylist: [/\/api\//],
+        navigateFallbackDenylist: [/\/api\//, /\/(?:instalar|verificar)\.html$/],
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
         // Product images are illustrative; don't cache third-party requests.
         runtimeCaching: [],

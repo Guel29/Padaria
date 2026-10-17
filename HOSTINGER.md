@@ -2,6 +2,14 @@
 
 Este pacote hospeda interface React/PWA, API PHP e persistência MySQL na Hostinger. Não precisa executar Node no plano: o build é feito antes do upload. Requer PHP 8.2+ (testado com 8.3), PDO MySQL e cookies HTTPS. A API usa PDO; não usa Composer.
 
+## Download pronto (sem compilar)
+
+Baixe **https://github.com/Guel29/Padaria/raw/refs/heads/main/downloads/padaria-hostinger.zip**. Não use Code → Download ZIP: ele contém o código-fonte e pode deixar a tela branca se enviado diretamente ao servidor.
+
+Extraia o ZIP. Envie **o conteúdo** de `public_html` (index.html, assets, api etc.) para a raiz pública do subdomínio. Não crie uma segunda pasta public_html dentro da primeira. A pasta `padaria-private` fica fora de todas as pastas públicas, como explicado abaixo.
+
+Se a tela não iniciar, abra `https://padaria.instara.com.br/verificar.html` e consulte os resultados. A página não altera o banco. Não apague pedidos ou configurações existentes para corrigir o upload.
+
 ## 1. Preparar o pacote
 
 ```sh
