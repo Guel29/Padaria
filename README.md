@@ -21,7 +21,7 @@ Na tela inicial, escolha **Entrar na demonstração**. Os campos de login mostra
 - Seleção de novo pedido/pedido feito, catálogo por categoria e busca.
 - Quantidade mínima 1, proteção de toque repetido, resumo e lançamentos separados por horário.
 - Edição com confirmação, remoção com quantidade zero, totais em centavos e histórico de alterações.
-- Encerramento simulado que arquiva o atendimento e libera o número para uma nova utilização.
+- Pagamento e encerramento exclusivos do sistema de retaguarda; nenhuma ação de encerramento na interface do atendente.
 - Persistência de demonstração no navegador e tratamento de erro de armazenamento.
 
 Os dados persistem em `localStorage` (`forno-afeto-demo-v1`). A sessão de demonstração fica em `sessionStorage`. Fotografias ilustrativas são carregadas do Unsplash, com alternativa visual em caso de falha. Não há receita ou pagamento real.
@@ -40,8 +40,8 @@ Após a aprovação visual, implementar backend compartilhado, transações, cha
 2. Abrir uma livre → Novo pedido → adicionar produtos e consultar resumo.
 3. Adicionar o mesmo produto novamente e conferir linhas/horários separados.
 4. Recarregar e conferir persistência; editar e remover um lançamento.
-5. Simular pagamento, reabrir a mesma comanda e conferir atendimento sem itens anteriores.
-6. No próximo atendimento, consultar o histórico para ver o atendimento encerrado.
+5. Conferir que não existe ação de pagamento ou encerramento na área do atendente.
+6. Adicionar Pão francês por peso (0,250 kg), conferir o subtotal e editar para 0,375 kg.
 
 ## Pré-visualização em tempo real (HMR)
 
@@ -79,3 +79,9 @@ O build usa `/Padaria/` para scripts, manifesto, ícones, início e escopo do Se
 O Service Worker pré-armazena os assets de cada build, limpa caches antigos e verifica novas versões periodicamente. Um aviso **Atualizar agora** permite trocar de versão sem interromper o atendimento automaticamente. Os pedidos locais não são apagados na atualização. **Depois** adia a troca até uma próxima verificação/abertura. A primeira publicação não requer limpar o navegador. Não é possível substituir os cabeçalhos HTTP do GitHub Pages com um arquivo `_headers`.
 
 Este é um **ambiente de demonstração público**, sem login seguro ou backend: use apenas dados fictícios. Cada dispositivo mantém dados próprios. Não registre dados reais de clientes. A publicação não cria integração comercial, sincronização entre tablets ou pagamento real.
+
+## Produtos por peso e encerramento
+
+Produtos com `unit: 'kg'` têm preço em centavos por quilograma. O atendente informa manualmente o peso líquido da balança em kg (vírgula ou ponto), entre 0,001 e 99,999 kg, com até três casas decimais. O cálculo usa gramas inteiros e arredonda o subtotal de cada lançamento para centavos. A edição e o histórico preservam a unidade. Produtos sem unidade declarada continuam por unidade, mantendo compatibilidade com pedidos já salvos. Lançamentos por peso continuam separados; não se somam kg com unidades para contar itens.
+
+Não há leitura automática da balança. Pagamento e encerramento não estão disponíveis ao atendente. Na demonstração sem integração, as comandas permanecem abertas: somente um futuro adaptador de retaguarda poderá aplicar a confirmação de encerramento. A função de domínio `closeVisit` não é chamada pela interface e não representa autorização financeira; deverá ser acionada exclusivamente pelo servidor/adaptador autorizado na integração real.
