@@ -1,7 +1,7 @@
 export type Product = { id: string; name: string; description: string; category: string; price: number; photo: string; unit?: 'un' | 'kg' };
 export type Item = { id: string; productId: string; name: string; photo: string; price: number; quantity: number; time: string; attendant: string; unit?: 'un' | 'kg' };
 export type Change = { item: string; before: number; after: number; time: string; attendant: string; unit?: 'un' | 'kg' };
-export type Visit = { id: string; number: number; items: Item[]; changes: Change[]; closedAt?: string };
+export type Visit = { id: string; number: number; items: Item[]; changes: Change[]; closedAt?: string; cancelledAt?: string };
 export type State = { visits: Visit[]; archive: Visit[] };
 export const categories = ['Todos', 'Salgados', 'Hambúrgueres', 'Pizzas', 'Pães', 'Bolos', 'Bebidas', 'Outros'];
 const photo = (id: string) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=600&q=85`;
@@ -39,10 +39,16 @@ export function addItem(state: State,number: number,item: Item,visitId: string):
  const exists=state.visits.find(v=>v.number===number);
  return {...state,visits:exists?state.visits.map(v=>v.number===number?{...v,items:[...v.items,item]}:v):[...state.visits,{id:visitId,number,items:[item],changes:[]}]};
 }
+/** Empty visits are cancelled, never marked paid. Also repairs older saved state. */
+export function releaseEmptyVisits(state: State): State {
+ const empty=state.visits.filter(v=>v.items.length===0);
+ if(!empty.length)return state;
+ return {visits:state.visits.filter(v=>v.items.length>0),archive:[...state.archive,...empty.map(v=>({...v,cancelledAt:new Date().toISOString()}))]};
+}
 export function editItem(state: State,visitId: string,itemId: string,quantity: number,attendant: string): State {
  const original=state.visits.find(v=>v.id===visitId)?.items.find(i=>i.id===itemId);
  if(!validQuantity(quantity, original?.unit, true)) throw new Error('Quantidade inválida');
- return {...state,visits:state.visits.map(v=>{if(v.id!==visitId)return v; const item=v.items.find(i=>i.id===itemId);if(!item)return v;return {...v,items:quantity===0?v.items.filter(i=>i.id!==itemId):v.items.map(i=>i.id===itemId?{...i,quantity}:i),changes:[...v.changes,{item:item.name,before:item.quantity,after:quantity,unit:item.unit,time:new Date().toISOString(),attendant}]};})};
+ return releaseEmptyVisits({...state,visits:state.visits.map(v=>{if(v.id!==visitId)return v; const item=v.items.find(i=>i.id===itemId);if(!item)return v;return {...v,items:quantity===0?v.items.filter(i=>i.id!==itemId):v.items.map(i=>i.id===itemId?{...i,quantity}:i),changes:[...v.changes,{item:item.name,before:item.quantity,after:quantity,unit:item.unit,time:new Date().toISOString(),attendant}]};})});
 }
 export function closeVisit(state: State,visitId: string): State {
  const visit=state.visits.find(v=>v.id===visitId);if(!visit)return state;
