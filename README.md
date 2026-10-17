@@ -17,7 +17,7 @@ Na tela inicial, escolha **Entrar na demonstração**. Os campos de login mostra
 
 ## Funcionalidades desta etapa
 
-- 25 comandas, filtros de estado e seis atendimentos fictícios iniciais.
+- Entrada direta pelo número da comanda no tablet, sem painel de cards. São 25 comandas iniciais e seis atendimentos fictícios.
 - Seleção de novo pedido/pedido feito, catálogo por categoria e busca.
 - Quantidade mínima 1, proteção de toque repetido, resumo e lançamentos separados por horário.
 - Edição com confirmação, remoção com quantidade zero, totais em centavos e histórico de alterações.
@@ -36,8 +36,8 @@ Após a aprovação visual, implementar backend compartilhado, transações, cha
 
 ## Validação visual
 
-1. Entrar na demonstração; verificar 25 comandas e filtros.
-2. Abrir uma livre → Novo pedido → adicionar produtos e consultar resumo.
+1. Entrar na demonstração; informar uma comanda entre 01 e a quantidade configurada na administração.
+2. Informar uma comanda livre → Novo pedido → adicionar produtos e consultar resumo.
 3. Adicionar o mesmo produto novamente e conferir linhas/horários separados.
 4. Recarregar e conferir persistência; editar e remover um lançamento.
 5. Conferir que não existe ação de pagamento ou encerramento na área do atendente.
@@ -103,3 +103,7 @@ O painel em `#admin` reúne comandas livres/ocupadas, taxa de ocupação, valore
 Os indicadores de pedidos incluem valor dos itens após correções, número de lançamentos, cancelamentos sem itens, correções, gráfico diário, produtos mais pedidos por quantidade de lançamentos e movimentações recentes. Peso e unidades não são somados como se fossem a mesma medida. Os cartões de comandas abertas são a posição atual e independem do filtro.
 
 Faturamento confirmado, produto mais vendido, ticket médio de vendas e histórico de vendas estão identificados como **aguardando PDV**. Não há recebimentos confirmados armazenados; os campos exibem indisponibilidade, não zero e não receita inventada. Estes indicadores somente poderão ser preenchidos após integrar uma fonte oficial de vendas/pagamentos do PDV e definir tratamento de cancelamentos e estornos.
+
+## Fluxo do tablet
+
+A área do atendente não possui mais painel/lista de comandas ou indicadores administrativos. Após o login, informe o número da comanda e toque em Continuar atendimento. A numeração é validada contra a quantidade configurada na administração. Comandas ocupadas oferecem Novo pedido/Pedido feito, preservando lançamentos anteriores. Use Trocar comanda para atender outro número. O dashboard permanece somente em `#admin`.
