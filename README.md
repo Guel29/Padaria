@@ -1,3 +1,11 @@
+## Versão Hostinger — PHP + MySQL
+
+Para instalar em **https://padaria.instara.com.br**, siga [HOSTINGER.md](HOSTINGER.md). Gere o pacote com `npm run build:hostinger`: frontend na raiz, API PHP e configuração privada fora da pasta pública. Esta versão usa contas criadas na instalação, sessões no servidor e pedidos compartilhados. Os logins fictícios abaixo pertencem somente à demonstração do GitHub Pages. A instalação no servidor não foi executada por este ambiente.
+
+O workflow **Gerar pacote Hostinger** disponibiliza o pacote como artefato no GitHub Actions após cada envio à main; ele não envia arquivos à hospedagem nem contém senhas. Pagamentos/faturamento e envio ao software comercial continuam pendentes de integração oficial com o PDV.
+
+---
+
 # Forno & Afeto — Comandas
 
 Primeira etapa visual do sistema de atendimento da padaria. React, TypeScript, Tailwind CSS e Vite. Interface em português, adaptada para tablet horizontal e celular.

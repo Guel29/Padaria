@@ -2,11 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import Admin from './Admin';
+import ServerGate from './ServerGate';
+import { serverMode } from './remote';
 import './admin.css';
 function Root() {
   const [hash,setHash]=useState(location.hash);
   useEffect(()=>{const sync=()=>setHash(location.hash);window.addEventListener('hashchange',sync);return()=>window.removeEventListener('hashchange',sync);},[]);
-  return hash.startsWith('#admin')?<Admin/>:<App/>;
+  const admin=hash.startsWith('#admin');
+  const screen=admin?<Admin/>:<App/>;
+  return serverMode?<ServerGate key={admin?'admin':'attendant'} admin={admin}>{screen}</ServerGate>:screen;
 }
 import './style.css';
 import './bakery-theme.css';

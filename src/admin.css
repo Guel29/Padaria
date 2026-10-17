@@ -6,3 +6,4 @@
 .admin-heading .home-button{background:#e3edf6;color:#356e9f;border:1px solid #d3e1ed;width:44px;height:44px;flex-shrink:0}.admin-heading>div{flex:1}.admin-heading .home-button:hover{background:#d3e3f0}
 /* Cabeçalho administrativo acompanha a rolagem; diálogos ficam acima dele. */
 .admin-heading{position:sticky;top:0;z-index:30;background:#f5f6f7;padding-top:15px;padding-bottom:15px;box-shadow:0 5px 8px #f5f6f7;margin-top:-15px}
+.server-loading{padding:80px 25px;text-align:center;color:#80664d}.server-security{display:flex;align-items:center;gap:7px;font-size:11px;color:#6c875a;margin-top:20px;justify-content:center}.server-network{position:relative;z-index:45;padding:15px 25px;background:#fff0c9;color:#775611;display:flex;align-items:center;gap:15px;flex-wrap:wrap;font-size:12px}.server-network button{display:flex;align-items:center;gap:8px;background:#71501e;color:#fff;padding:12px;border-radius:8px}.server-network small{display:block;width:100%}

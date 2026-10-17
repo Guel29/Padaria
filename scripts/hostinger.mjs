@@ -1,0 +1,11 @@
+import fs from 'node:fs';
+import { products, categories } from '../src/domain.ts';
+fs.rmSync('release/hostinger',{recursive:true,force:true});
+fs.mkdirSync('release/hostinger/public_html',{recursive:true});
+fs.cpSync('dist-hostinger','release/hostinger/public_html',{recursive:true});
+fs.cpSync('backend/public','release/hostinger/public_html',{recursive:true});
+fs.mkdirSync('release/hostinger/padaria-private',{recursive:true});
+for(const name of ['api.php','config.example.php','schema.sql','.htaccess'])fs.copyFileSync(`backend/private/${name}`,`release/hostinger/padaria-private/${name}`);
+fs.writeFileSync('release/hostinger/padaria-private/initial.json',JSON.stringify({store:{name:'Padaria do Supermercado',legalName:'',cnpj:'',address:'',city:'',phone:'',logo:''},products:products.map(p=>({...p,active:true})),categories:categories.filter(c=>c!=='Todos'),tableCount:25,users:[]}));
+fs.copyFileSync('HOSTINGER.md','release/hostinger/LEIA-ME.md');
+console.log('Pacote preparado em release/hostinger. Não contém credenciais reais.');

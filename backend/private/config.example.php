@@ -1,0 +1,13 @@
+<?php
+// Copy to config.php OUTSIDE public_html. Never commit real values.
+return [
+ 'origin' => 'https://padaria.instara.com.br',
+ 'db_host' => 'localhost',
+ 'db_port' => 3306,
+ 'db_name' => 'PREENCHA_NOME_MYSQL',
+ 'db_user' => 'PREENCHA_USUARIO_MYSQL',
+ 'db_password' => 'PREENCHA_SENHA_MYSQL',
+ // Generate a random token with a password manager (at least 32 characters).
+ // Used only once, to initialize empty database and create your accounts.
+ 'setup_token' => 'SUBSTITUA_POR_TOKEN_ALEATORIO_DE_32_CARACTERES_OU_MAIS',
+];

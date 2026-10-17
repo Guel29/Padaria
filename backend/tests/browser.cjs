@@ -1,0 +1,40 @@
+// Run against an isolated test database only. Fixture JSON stays outside the repository.
+const {chromium}=require(process.env.PADARIA_PLAYWRIGHT_MODULE||'playwright');
+const assert=require('node:assert/strict');const fs=require('node:fs');
+const fixture=JSON.parse(fs.readFileSync(process.env.PADARIA_TEST_FIXTURE,'utf8'));
+const base=process.env.PADARIA_TEST_URL||'http://localhost:8787';
+(async()=>{
+ const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});const errors=[];
+ const make=async()=>{const c=await browser.newContext({viewport:{width:1280,height:900}});const p=await c.newPage();p.setDefaultTimeout(10000);p.on('pageerror',e=>errors.push(e.message));return p;};
+ const setup=await make();await setup.goto(base+'/instalar.html');for(const field of ['token','email','password','code','pin'])await setup.locator(`[name=${field}]`).fill(fixture[field]);await setup.getByRole('button',{name:'Criar contas e iniciar banco vazio'}).click();await setup.getByRole('status').getByText('Instalação concluída.',{exact:false}).waitFor();
+ const a=await make(),b=await make();
+ async function enter(p,admin=false,login=fixture.code,password=fixture.pin){await p.goto(base+(admin?'/#admin':'/'));await p.getByLabel(admin?'E-mail administrativo':'Código de acesso (6 dígitos)',{exact:true}).fill(login);await p.getByLabel(admin?'Senha':'Senha (4 dígitos)',{exact:true}).fill(password);await p.getByRole('button',{name:'Entrar',exact:true}).click();if(admin)await p.getByRole('heading',{name:'Painel administrativo'}).waitFor();else await p.locator('.table-card').first().waitFor();}
+ await enter(a);await enter(b);assert.equal(await a.locator('.table-card.free').count(),25);
+ const cookie=await a.context().cookies();assert.equal(cookie.find(c=>c.name==='padaria_session').httpOnly,true);assert.equal(cookie.find(c=>c.name==='padaria_session').secure,true);
+ await a.getByRole('button',{name:'Comanda 1, livre',exact:true}).click();await a.getByRole('button',{name:/Novo pedido/}).click();const weighted=a.locator('.product').filter({has:a.getByRole('heading',{name:'Pão francês por peso',exact:true})});await weighted.getByRole('textbox').fill('0,250');await weighted.getByRole('button',{name:'Adicionar',exact:true}).click();await a.getByRole('status').getByText('Produto adicionado com sucesso!',{exact:true}).waitFor();await b.getByRole('button',{name:'Comanda 1, em atendimento',exact:true}).waitFor();
+ async function rpc(p,action,body,csrf=true){return p.evaluate(async({base,action,body,csrf})=>{const session=await(await fetch(base+'/api/index.php?action=session')).json();const r=await fetch(base+'/api/index.php?action='+action,{method:'POST',headers:{'Content-Type':'application/json',...(csrf?{'X-CSRF-Token':session.csrf}:{})},body:JSON.stringify(body)});return {status:r.status,json:await r.json()};},{base,action,body,csrf});}
+ const sess=await a.evaluate(async()=>await(await fetch('/api/index.php?action=session')).json());const visit=sess.data.orders.visits[0];const stale=sess.data.version;
+ const payload={operationId:crypto.randomUUID(),number:1,productId:'2',quantity:1,visitId:visit.id};const attempts=await Promise.all([rpc(a,'add',payload),rpc(a,'add',payload)]);assert.ok(attempts.every(r=>r.status===200));assert.equal(attempts[1].json.orders.visits[0].items.length,2);
+ assert.equal((await rpc(a,'add',{...payload,quantity:2})).status,409);
+ assert.equal((await rpc(a,'settings',{operationId:crypto.randomUUID(),settings:sess.data.settings,settingsVersion:sess.data.settingsVersion})).status,403);
+ assert.equal((await rpc(a,'add',{...payload,operationId:crypto.randomUUID()},false)).status,403);
+ assert.equal((await rpc(a,'add',{...payload,operationId:crypto.randomUUID(),quantity:-1})).status,422);
+ assert.equal((await rpc(a,'edit',{operationId:crypto.randomUUID(),visitId:visit.id,itemId:visit.items[0].id,quantity:0.5,version:stale})).status,409);
+ console.log('PASS: instalação, contas reais, cookies seguros, dois tablets, peso, idempotência concorrente, autorização, CSRF, validação e versão.');
+ // Offline operation survives reload and is resent using the original operation ID.
+ console.log('Testing pending retry…');await a.route('**/api/index.php?action=add',route=>route.abort());await a.locator('.product').first().getByRole('button',{name:'Adicionar',exact:true}).click();await a.getByRole('button',{name:'Reenviar com segurança',exact:true}).waitFor();await a.reload();await a.getByRole('button',{name:'Reenviar com segurança',exact:true}).waitFor();await a.unroute('**/api/index.php?action=add');await a.getByRole('button',{name:'Reenviar com segurança',exact:true}).click();await a.getByRole('button',{name:'Reenviar com segurança',exact:true}).waitFor({state:'hidden'});
+ let afterRetry=await a.evaluate(async()=>await(await fetch('/api/index.php?action=session')).json());assert.equal(afterRetry.data.orders.visits[0].items.length,3);
+ const currentVisit=afterRetry.data.orders.visits[0];
+ let edit=await rpc(a,'edit',{operationId:crypto.randomUUID(),visitId:currentVisit.id,itemId:currentVisit.items[0].id,quantity:0.375,version:afterRetry.data.version});assert.equal(edit.status,200);assert.equal(edit.json.orders.visits[0].items[0].quantity,0.375);
+ for(const item of [...edit.json.orders.visits[0].items]){edit=await rpc(a,'edit',{operationId:crypto.randomUUID(),visitId:currentVisit.id,itemId:item.id,quantity:0,version:edit.json.version});assert.equal(edit.status,200);}
+ assert.equal(edit.json.orders.visits.length,0);assert.ok(edit.json.orders.archive[0].cancelledAt);assert.equal(edit.json.orders.archive[0].closedAt,undefined);await b.getByRole('button',{name:'Comanda 1, livre',exact:true}).waitFor();
+ console.log('PASS: edição de peso no servidor e remoção do último item liberam comanda sem pagamento.');
+ await a.setViewportSize({width:390,height:844});assert.equal(await a.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ console.log('Testing administrative saves…');const admin=await make();await enter(admin,true,fixture.email,fixture.password);await admin.getByRole('button',{name:'Loja',exact:true}).click();await admin.getByLabel('Nome fantasia').fill('Padaria integrada');await admin.getByRole('button',{name:'Salvar loja',exact:true}).click();await admin.getByRole('status').getByText('Loja salva.',{exact:false}).waitFor();await b.locator('.store-brand-name').getByText('Padaria integrada').waitFor();
+ await admin.getByRole('button',{name:'Usuários',exact:true}).click();await admin.getByRole('button',{name:'Novo atendente'}).click();await admin.getByLabel('Nome',{exact:true}).fill('Segundo atendente');await admin.getByLabel('Código de seis dígitos',{exact:true}).fill('222222');await admin.getByLabel('Senha de quatro dígitos (vazio mantém a atual)',{exact:true}).fill('9876');await admin.getByRole('button',{name:'Salvar atendente',exact:true}).click();await admin.getByRole('status').getByText('Atendente salvo no servidor.',{exact:true}).waitFor();const c=await make();await enter(c,false,'222222','9876');
+ console.log('Testing user revocation…');const row=admin.getByRole('row').filter({hasText:'Segundo atendente'});await row.getByRole('button',{name:'Editar',exact:true}).click();await admin.getByRole('dialog',{name:'Cadastro de atendente'}).getByRole('combobox').selectOption('false');await admin.getByRole('button',{name:'Salvar atendente',exact:true}).click();await c.getByLabel('Código de acesso (6 dígitos)',{exact:true}).waitFor();
+ await b.goto(base+'/#admin');await b.getByLabel('E-mail administrativo',{exact:true}).waitFor();assert.equal(await b.getByRole('heading',{name:'Painel administrativo'}).count(),0);
+ await a.getByRole('button',{name:'Sair da conta',exact:true}).click();await a.getByLabel('Código de acesso (6 dígitos)',{exact:true}).waitFor();
+ console.log('PASS: operação pendente após recarga, reenvio único, cadastro compartilhado, senha com login no servidor, revogação de sessão e rota administrativa protegida.');
+ assert.deepEqual(errors,[]);await browser.close();
+})().catch(e=>{console.error(e);process.exit(1)});

@@ -5,21 +5,24 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', 'DEV_');
+  const hosted = mode === 'hostinger';
+  const base = hosted ? '/' : mode === 'production' ? '/Padaria/' : '/';
   const previewUrl = env.DEV_PREVIEW_URL ? new URL(env.DEV_PREVIEW_URL) : undefined;
   return {
-    base: mode === 'production' ? '/Padaria/' : '/',
+    base,
+    build: { outDir: hosted ? 'dist-hostinger' : 'dist' },
     plugins: [react(), tailwindcss(), VitePWA({
       registerType: 'prompt',
       injectRegister: false,
       includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png'],
       manifest: {
-        id: '/Padaria/',
+        id: base,
         name: 'Padaria do Supermercado — Comandas',
         short_name: 'Padaria',
-        description: 'Demonstração de atendimento e comandas da padaria.',
+        description: hosted ? 'Atendimento e comandas da padaria.' : 'Demonstração de atendimento e comandas da padaria.',
         lang: 'pt-BR',
-        start_url: '/Padaria/',
-        scope: '/Padaria/',
+        start_url: base,
+        scope: base,
         display: 'standalone',
         background_color: '#faf7f2',
         theme_color: '#663006',
@@ -31,7 +34,8 @@ export default defineConfig(({ mode }) => {
       },
       workbox: {
         cleanupOutdatedCaches: true,
-        navigateFallback: '/Padaria/index.html',
+        navigateFallback: `${base}index.html`,
+        navigateFallbackDenylist: [/\/api\//],
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
         // Product images are illustrative; don't cache third-party requests.
         runtimeCaching: [],

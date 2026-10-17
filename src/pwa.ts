@@ -11,7 +11,7 @@ export function startPwa() {
       banner.className = 'pwa-update';
       banner.setAttribute('role', 'status');
       const message = document.createElement('span');
-      message.textContent = 'Nova versão disponível. Seus pedidos locais serão mantidos.';
+      message.textContent = 'Nova versão disponível. Os pedidos salvos serão mantidos.';
       const update = document.createElement('button');
       update.textContent = 'Atualizar agora';
       update.onclick = () => { void updateSW(true); };
