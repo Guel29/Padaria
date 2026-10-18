@@ -16,13 +16,13 @@ const entries={};
 function collect(dir){for(const name of fs.readdirSync(dir)){const file=path.join(dir,name);if(fs.statSync(file).isDirectory())collect(file);else entries[path.relative('release/hostinger',file).split(path.sep).join('/')]=new Uint8Array(fs.readFileSync(file));}}
 collect('release/hostinger');
 fs.mkdirSync('downloads',{recursive:true});
-fs.writeFileSync('downloads/padaria-hostinger.zip',zipSync(entries,{level:9,mtime:new Date('1980-01-01T00:00:00Z')}));
+fs.writeFileSync('downloads/padaria-hostinger.zip',zipSync(entries,{level:9,mtime:new Date('2026-01-01T12:00:00Z')}));
 fs.copyFileSync('downloads/padaria-hostinger.zip','release/padaria-hostinger.zip');
 console.log('ZIP pronto: downloads/padaria-hostinger.zip');
 
 const bridgeEntries={};
 for(const name of ['bridge.py','requirements.txt','Instalar.bat','Configurar.bat','Testar-Leitura.bat','Iniciar.bat','LEIA-ME.md'])bridgeEntries[name]=new Uint8Array(name.endsWith('.bat')?Buffer.from(fs.readFileSync(`bridge-windows/${name}`,'utf8').replace(/\r?\n/g,'\r\n')):fs.readFileSync(`bridge-windows/${name}`));
-fs.writeFileSync('downloads/ponte-vr-windows.zip',zipSync(bridgeEntries,{level:9,mtime:new Date('1980-01-01T00:00:00Z')}));
+fs.writeFileSync('downloads/ponte-vr-windows.zip',zipSync(bridgeEntries,{level:9,mtime:new Date('2026-01-01T12:00:00Z')}));
 
 const updateEntries={};
 for(const [name,bytes] of Object.entries(entries)){
@@ -30,4 +30,4 @@ for(const [name,bytes] of Object.entries(entries)){
   if(['padaria-private/api.php','padaria-private/vr.php','padaria-private/vr-schema.sql'].includes(name))updateEntries[name]=bytes;
 }
 updateEntries['ATUALIZAR-VR.md']=new Uint8Array(fs.readFileSync('HOSTINGER-VR.md'));
-fs.writeFileSync('downloads/atualizacao-vr-hostinger.zip',zipSync(updateEntries,{level:9,mtime:new Date('1980-01-01T00:00:00Z')}));
+fs.writeFileSync('downloads/atualizacao-vr-hostinger.zip',zipSync(updateEntries,{level:9,mtime:new Date('2026-01-01T12:00:00Z')}));
