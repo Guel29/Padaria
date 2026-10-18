@@ -17,3 +17,11 @@ node backend/tests/browser.cjs
 ```
 
 O banco precisa estar vazio no começo: o teste executa o instalador uma vez. Para rodar novamente, recrie apenas o banco descartável. Não comite fixture, config.php ou senhas. Os testes de domínio continuam em `npm test`.
+
+## Ponte de leitura VR
+
+`python3 -m unittest discover -s tests -p 'test_*.py'` na raiz valida UN/KG sem usar pesavel como unidade, centavos, limites e reenvio durável da mesma operação. Não requer PostgreSQL ou Windows.
+
+`tests/vr-fixture.sql` cria dados de exemplo somente em PostgreSQL descartável. O teste real de coleta usou PostgreSQL 14 e uma conta limitada a SELECT; uma tentativa de DELETE foi recusada. `tests/bridge_live.py` requer psycopg e `VR_TEST_FIXTURE` apontando a um JSON privado fora do checkout com credenciais e source/token exclusivamente de teste. Ele usa localhost:55432 para PostgreSQL e localhost:8788 para API PHP/MySQL; em produção, a configuração da ponte aceita apenas HTTPS. O teste usa uma origem/loja autorizada na cópia privada de config.php e a migração vr-schema.sql no MySQL descartável. `VR_TEST_SEQUENCE` permite testar uma próxima sequência sem apagar o espelho. O fixture SQL deve ser carregado por um administrador somente no banco descartável; a conta de leitura recebe sua senha dinamicamente fora do repositório.
+
+`tests/vr_admin.cjs` usa Playwright e uma instalação vazia de teste em localhost:8788, inicializada pelo próprio teste. `VR_TEST_FIXTURE` contém install_token/admin_password gerados para esse banco descartável. Valida importação inativa, produtos incompatíveis bloqueados, cupom cancelado, ativação no catálogo, ausência de liberação automática e proibição de acesso do atendente ao espelho. Não rode em instalação existente: o teste pressupõe banco vazio e grava pedidos/cadastros de exemplo. DPAPI e scripts BAT requerem validação manual em Windows real, não disponível no executor Linux.

@@ -1,0 +1,28 @@
+-- Disposable integration fixture only. Never run on the VR database.
+CREATE SCHEMA pdv;
+CREATE SCHEMA ficha;
+CREATE TABLE public.tipoembalagem(id int primary key,descricao char(2));
+CREATE TABLE public.produto(id int primary key,descricaocompleta varchar,pesavel boolean,id_tipoembalagem int);
+CREATE TABLE public.produtocomplemento(id_produto int,id_loja int,precovenda numeric,id_tipoembalagem int);
+CREATE TABLE public.produtoautomacao(id_produto int,codigobarras numeric(20,3),id_tipoembalagem int,qtdembalagem int);
+CREATE TABLE pdv.ficha(id int primary key,id_loja int,numeroficha int,datahora timestamp);
+CREATE TABLE pdv.fichaitem(id int,id_ficha int,sequencia int,codigobarras numeric,quantidade numeric,precovenda numeric,iscancelado boolean);
+CREATE TABLE ficha.ficha(id int primary key,id_loja int,numeroficha int,datahora timestamp,data date,numerocupom int,ecf int);
+CREATE TABLE ficha.fichaitem(id int,id_ficha int,sequencia int,codigobarras numeric,quantidade numeric,precovenda numeric,iscancelado boolean,id_vendaitem int);
+CREATE TABLE pdv.vendaitem(id int primary key,id_venda int,id_produto int,quantidade numeric,precovenda numeric,valortotal numeric,cancelado boolean);
+CREATE TABLE pdv.venda(id int primary key,id_loja int,data date,numerocupom int,ecf int,cancelado boolean);
+INSERT INTO public.tipoembalagem VALUES (0,'UN'),(4,'KG');
+INSERT INTO public.produto VALUES (439,'COXINHA DE FRANGO GRANDE',true,0),(440,'PAO POR KG',true,4),(441,'UNIDADE DIVERGENTE',true,0);
+INSERT INTO public.produtocomplemento VALUES (439,1,4.50,0),(440,1,18.90,4),(441,1,10.00,4);
+INSERT INTO public.produtoautomacao VALUES (439,439.000,0,1),(440,440,4,1),(441,441,4,1);
+INSERT INTO pdv.ficha VALUES (2,1,9002,CURRENT_TIMESTAMP);
+INSERT INTO pdv.fichaitem VALUES (2,2,1,440,0.250,18.90,false);
+INSERT INTO ficha.ficha VALUES (1,1,9001,CURRENT_TIMESTAMP,CURRENT_DATE,67716,112);
+INSERT INTO ficha.fichaitem VALUES (1,1,1,439,1,4.50,false,1421679);
+INSERT INTO pdv.vendaitem VALUES (1421679,215787,439,1,4.50,4.50,false);
+INSERT INTO pdv.venda VALUES (215787,1,CURRENT_DATE,67716,112,true);
+CREATE USER vr_reader;
+GRANT CONNECT ON DATABASE vr_test TO vr_reader;
+GRANT USAGE ON SCHEMA public,pdv,ficha TO vr_reader;
+GRANT SELECT ON ALL TABLES IN SCHEMA public,pdv,ficha TO vr_reader;
+ALTER ROLE vr_reader SET default_transaction_read_only=on;

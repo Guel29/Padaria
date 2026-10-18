@@ -1,3 +1,7 @@
+## Ponte de leitura VR
+
+Para atualizar a instalação existente e configurar o coletor Windows, siga [HOSTINGER-VR.md](HOSTINGER-VR.md). Downloads prontos: [atualização Hostinger](https://github.com/Guel29/Padaria/raw/refs/heads/main/downloads/atualizacao-vr-hostinger.zip) e [ponte Windows](https://github.com/Guel29/Padaria/raw/refs/heads/main/downloads/ponte-vr-windows.zip). A ponte usa somente SELECT no PostgreSQL; nenhuma credencial real está no repositório. A leitura não implementa escrita de pedidos nem liberação automática no PDV.
+
 **Download pronto para Hostinger:** [padaria-hostinger.zip](https://github.com/Guel29/Padaria/raw/refs/heads/main/downloads/padaria-hostinger.zip). Não envie o ZIP de Code → Download ZIP diretamente para a hospedagem: ele contém o código-fonte. A instalação usa o conteúdo de `public_html` do pacote compilado e a pasta privada conforme [HOSTINGER.md](HOSTINGER.md).
 
 ## Versão Hostinger — PHP + MySQL

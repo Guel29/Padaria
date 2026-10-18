@@ -33,7 +33,7 @@ function settings(array $s,array $orders):array{
  check(is_array($s['categories'])&&count($s['categories'])<=100,'Categorias inválidas.');$cats=[];$seen=[];
  foreach($s['categories'] as $c){$c=text($c,80);check($c!==''&&$c!=='Todos'&&!isset($seen[strtolower($c)]),'Categoria duplicada ou inválida.');$cats[]=$c;$seen[strtolower($c)]=true;}
  check(is_array($s['products'])&&count($s['products'])<=500,'Catálogo inválido.');$products=[];$ids=[];
- foreach($s['products'] as $p){$id=text($p['id']??'',64);check($id!==''&&!isset($ids[$id]),'Produto duplicado.');$ids[$id]=true;$name=text($p['name']??'',100);$unit=$p['unit']??'un';check($name!==''&&in_array($unit,['kg','un'],true),'Nome ou unidade inválidos.');check(in_array($p['category']??'', $cats,true),'Categoria não cadastrada.');check(is_int($p['price']??null)&&$p['price']>0&&$p['price']<=99999999,'Preço inválido.');check(is_bool($p['active']??null),'Status inválido.');$products[]=['id'=>$id,'name'=>$name,'description'=>text($p['description']??'',250),'unit'=>$unit,'category'=>$p['category'],'price'=>$p['price'],'photo'=>image($p['photo']??''),'active'=>$p['active']];}
+ foreach($s['products'] as $p){$id=text($p['id']??'',64);check($id!==''&&!isset($ids[$id]),'Produto duplicado.');$ids[$id]=true;$name=text($p['name']??'',200);$unit=$p['unit']??'un';check($name!==''&&in_array($unit,['kg','un'],true),'Nome ou unidade inválidos.');check(in_array($p['category']??'', $cats,true),'Categoria não cadastrada.');check(is_int($p['price']??null)&&$p['price']>0&&$p['price']<=99999999,'Preço inválido.');check(is_bool($p['active']??null),'Status inválido.');$products[]=['id'=>$id,'name'=>$name,'description'=>text($p['description']??'',250),'unit'=>$unit,'category'=>$p['category'],'price'=>$p['price'],'photo'=>image($p['photo']??''),'active'=>$p['active']];}
  return ['store'=>$store,'products'=>$products,'categories'=>$cats,'tableCount'=>$s['tableCount'],'users'=>[]];
 }
 function snapshot(PDO $db,array $user):array{
@@ -50,7 +50,7 @@ try{
  check(in_array($method,['GET','POST'],true),'Método não suportado.');
  $origin=$_SERVER['HTTP_ORIGIN']??'';
  if($method==='POST'){
-  if($origin!==$config['origin'])fail(403,'Origem não autorizada.');
+  if($action!=='bridge'&&$origin!==$config['origin'])fail(403,'Origem não autorizada.');
   if(!str_starts_with(strtolower($_SERVER['CONTENT_TYPE']??''),'application/json'))fail(415,'Envie JSON.');
   if((int)($_SERVER['CONTENT_LENGTH']??0)>12582912)fail(413,'Requisição muito grande.');
  }
@@ -59,6 +59,8 @@ try{
  $body=$method==='POST'?json_decode($raw,true,512,JSON_THROW_ON_ERROR):[];
  if($method==='POST'&&!is_array($body))fail(400,'JSON inválido.');
  $db=new PDO('mysql:host='.$config['db_host'].';port='.($config['db_port']??3306).';dbname='.$config['db_name'].';charset=utf8mb4',$config['db_user'],$config['db_password'],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>false]);
+ require_once __DIR__.'/vr.php';
+ if($action==='bridge'){if($method!=='POST')fail(405,'Use POST.');vr_receive($db,$config,$body,$raw);}
  if($action==='install'){
   if($method!=='POST')fail(405,'Use POST.');
   if(query($db,'SELECT id FROM app_data WHERE id=1')->fetch())fail(409,'Aplicativo já instalado.');
@@ -88,6 +90,7 @@ try{
  $u=query($db,'SELECT u.*,s.csrf FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>? AND u.active=1',[hash('sha256',$token),time()])->fetch();
  if(!$u)fail(401,'Entre novamente para continuar.');
  if($method==='POST'&&!hash_equals($u['csrf'],$_SERVER['HTTP_X_CSRF_TOKEN']??''))fail(403,'Sessão inválida. Reabra o aplicativo.');
+ if(in_array($action,['vr_status','vr_import'],true)){if($u['role']!=='admin')fail(403,'Acesso administrativo necessário.');if($action==='vr_status'){if($method!=='GET')fail(405,'Use GET.');output(vr_status($db,$config));}if($method!=='POST')fail(405,'Use POST.');vr_import($db,$config,$body,$u);}
  if($action==='session')output(['user'=>['id'=>$u['id'],'login'=>$u['login'],'name'=>$u['name'],'role'=>$u['role']],'csrf'=>$u['csrf'],'data'=>snapshot($db,$u)]);
  if($action==='snapshot')output(snapshot($db,$u));
  if($action==='logout'){
