@@ -16,7 +16,7 @@ export function useSettings(){
  // The build target is immutable; both modes keep their own persistence.
  const remote=serverMode?useRemote():null;
  useEffect(()=>{const sync=()=>setSettings(readSettings());window.addEventListener('storage',sync);window.addEventListener('padaria-settings',sync);return()=>{window.removeEventListener('storage',sync);window.removeEventListener('padaria-settings',sync);};},[]);
- async function save(next:Settings){if(serverMode){await mutate('settings',{settings:next,settingsVersion:getRemote().settingsVersion});return;}localStorage.setItem(KEY,JSON.stringify(next));setSettings(next);window.dispatchEvent(new Event('padaria-settings'));}
+ async function save(next:Settings){if(serverMode){await mutate('settings',{settings:next,settingsVersion:getRemote().settingsVersion});const confirmed=getRemote().settings;for(const p of next.products){const expected=vrLinkOf(p);const saved=confirmed.products.find(i=>i.id===p.id);const actual=saved?vrLinkOf(saved):null;if(!saved||expected?.store!==actual?.store||expected?.productId!==actual?.productId)throw new Error('O servidor não confirmou o vínculo VR. Atualize também api.php e vr.php na pasta padaria-private da Hostinger, além dos arquivos públicos, e salve novamente.');}return;}localStorage.setItem(KEY,JSON.stringify(next));setSettings(next);window.dispatchEvent(new Event('padaria-settings'));}
  return {settings:remote?.settings||settings,save};
 }
 /** Images are data URLs, bounded to avoid exhausting local demo storage. */
