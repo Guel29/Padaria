@@ -56,11 +56,11 @@ def configure():
     if os.name!='nt': raise SafeError('Execute Configurar.bat no computador Windows da loja.')
     STATE.mkdir(exist_ok=True)
     if (STATE/'config.json').exists(): raise SafeError('Já existe configuração. Preserve dados-locais; consulte o guia antes de reconfigurar.')
-    print('Não use a conta postgres. Solicite um usuário PostgreSQL exclusivo, com acesso somente SELECT.')
+    print('A ponte consulta o VR em transações somente de leitura. Uma conta exclusiva SELECT é recomendada; postgres também é aceito.')
     host=input('Servidor PostgreSQL [192.168.30.250]: ').strip() or '192.168.30.250'
     port=int(input('Porta [8745]: ').strip() or '8745');database=input('Banco [vr]: ').strip() or 'vr'
-    user=input('Usuário de leitura PostgreSQL: ').strip();password=getpass.getpass('Senha PostgreSQL (não aparece): ')
-    if not user or not password or user.lower()=='postgres': raise SafeError('Use um usuário exclusivo de leitura, diferente de postgres.')
+    user=input('Usuário PostgreSQL: ').strip();password=getpass.getpass('Senha PostgreSQL (não aparece): ')
+    if not user or not password: raise SafeError('Informe o usuário e a senha PostgreSQL.')
     ids=sorted(set(int(v.strip()) for v in input('IDs de produtos autorizados, separados por vírgula (ex.: 439): ').split(',')))
     c={'url':(input('Origem HTTPS [https://padaria.instara.com.br]: ').strip() or 'https://padaria.instara.com.br').rstrip('/'),'host':host,'port':port,'database':database,'user':user,'store':int(input('Loja [1]: ').strip() or '1'),'product_ids':ids,'lookback_days':45,'interval':30,'source':str(uuid.uuid4())}
     validate_config(c);token=secrets.token_urlsafe(48)

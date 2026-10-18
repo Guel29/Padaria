@@ -24,7 +24,7 @@ Extraia em uma pasta do usuário do Windows e siga o arquivo LEIA-ME.md. A ordem
 
 1. Instale Python 3.12 (64 bits), com o launcher `py`.
 2. Execute Instalar.bat.
-3. Solicite/configure uma conta PostgreSQL exclusiva de leitura; não use postgres nem reutilize a credencial exposta.
+3. Prefira uma conta PostgreSQL exclusiva de leitura. A ponte também aceita a conta atual `postgres`, conforme autorizado, mantendo as consultas em transações somente de leitura; isso não reduz as permissões administrativas da conta.
 4. Execute Configurar.bat. Informe host, porta, banco e essa conta. Selecione inicialmente apenas o produto 439 e loja 1 para validação.
 5. A configuração gera `dados-locais/hostinger-config.txt`. Copie as três opções desse arquivo para **dentro do array** do config.php privado da Hostinger. Se já existirem, substitua seus valores em vez de duplicar as chaves. Não altere as credenciais MySQL.
 6. Execute Testar-Leitura.bat: ele não envia dados. Resolva qualquer erro de acesso/estrutura antes de prosseguir.

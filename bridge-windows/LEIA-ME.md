@@ -16,7 +16,7 @@ Lê produtos/preços selecionados, fichas abertas e fichas históricas vinculada
 
 ## Preparar o PostgreSQL
 
-Solicite ao responsável pelo VR um usuário exclusivo com CONNECT no banco, USAGE nos schemas `public`, `pdv`, `ficha` e SELECT somente nas tabelas utilizadas (lista em `SCHEMA` no bridge.py). Não use postgres nem a credencial anteriormente compartilhada. A ponte também força transações READ ONLY, mas isso não substitui as permissões mínimas no banco. Não abra a porta PostgreSQL na internet.
+Solicite ao responsável pelo VR um usuário exclusivo com CONNECT no banco, USAGE nos schemas `public`, `pdv`, `ficha` e SELECT somente nas tabelas utilizadas (lista em `SCHEMA` no bridge.py). O usuário `postgres` também é aceito quando autorizado pelo responsável pela loja; a conta mantém suas permissões administrativas, embora a ponte use transações somente de leitura. A ponte também força transações READ ONLY, mas isso não substitui as permissões mínimas no banco. Não abra a porta PostgreSQL na internet.
 
 Host e porta observados: 192.168.30.250:8745, banco vr, loja 1. A conexão deve acontecer no computador/rede local da loja. O protocolo PostgreSQL usa por padrão sslmode=prefer do libpq. Para exigir verificação, adicione `"sslmode": "verify-full"` e `"sslrootcert": "C:\\caminho\\ca.crt"` no config.json, usando host compatível com o certificado fornecido pelo suporte. Não use sslmode=disable; confirme com o suporte como exigir TLS/verificação do certificado nessa rede antes de operar fora de rede confiável. HTTPS para a Hostinger sempre verifica certificado.
 
@@ -25,7 +25,7 @@ Host e porta observados: 192.168.30.250:8745, banco vr, loja 1. A conexão deve 
 1. Instale Python 3.12 (64 bits) de python.org (com Python Launcher `py`).
 2. Extraia este pacote em uma pasta do **seu usuário**, por exemplo `%LOCALAPPDATA%\PadariaPonte`. Não use uma pasta de acesso público/rede ou da hospedagem.
 3. Execute `Instalar.bat` para criar um ambiente Python local e instalar as dependências fixadas.
-4. Execute `Configurar.bat`. Informe o usuário de leitura e sua senha. A senha não aparece na tela.
+4. Execute `Configurar.bat`. Informe o usuário PostgreSQL (inclusive `postgres`, se for sua conta atual) e sua senha. A senha não aparece na tela.
 5. Escolha explicitamente os IDs de produtos autorizados (por exemplo, 439 para o teste da coxinha). Até 200 por configuração; não há importação irrestrita. Loja padrão 1. O assistente gera um token aleatório e um identificador de origem, sem mostrar o token original.
 6. Copie as três opções de `dados-locais/hostinger-config.txt` para o array privado de config.php na Hostinger. Esse arquivo contém somente o hash do token, ID da origem e loja, não a senha do PostgreSQL nem o token original. Nunca envie `segredos.dat` ou config.php ao chat/GitHub.
 7. Execute `Testar-Leitura.bat`. Ele consulta com READ ONLY e não envia nada à Hostinger. Se faltar coluna/permissão, a ponte interrompe sem tentar adivinhar tabelas.
