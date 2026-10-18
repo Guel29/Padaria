@@ -49,3 +49,13 @@ A coleta ocorre a cada 30 segundos; o painel consulta a cada 15 segundos. A atua
 Foram testados coletor em PostgreSQL 14 com usuário de SELECT, API PHP/MySQL, deduplicação, credenciais da ponte, ordem de lotes, unidades UN/KG, vínculo explícito ficha-venda, cancelamento do cabeçalho, importação inativa, acesso administrativo e preservação de pedidos locais. O reenvio conserva o mesmo lote após falha.
 
 Não temos acesso à rede da loja nem à sessão Windows: DPAPI, instalação/agendamento e a leitura dos registros reais ainda precisam ser validados no seu computador. Nenhuma senha real está nos pacotes. Esta etapa não disponibiliza gravações no VR. Consulte o LEIA-ME da ponte para limites, permissões e agendamento automático.
+
+## Associar um produto cadastrado no Admin
+
+Em Produtos → Novo produto ou Editar, preencha **Loja VR** e **ID do produto VR** na seção Associação com o VR. Use o ID interno do produto, não o código de barras. A combinação loja/ID é única: se já foi importada, edite aquele cadastro ou remova seu vínculo antes de associá-la a outro produto. O ID interno local não é alterado e os pedidos anteriores são preservados.
+
+Inclua os IDs escolhidos em `product_ids` no `dados-locais/config.json` da ponte Windows (até 200 IDs), preservando os demais campos e arquivos. Feche a ponte antes de editar, teste a leitura e reinicie. Depois de receber uma leitura recente, clique em Importar / atualizar catálogo em Integração VR. A associação sozinha não amplia a seleção da ponte nem atualiza preço automaticamente.
+
+Produtos associados recebem preço e unidade do VR, preservando nome, descrição, foto, categoria e status. Unidade indefinida ou preço inválido desativa o produto associado para conferência. Para remover uma associação, deixe o campo ID do produto VR vazio e salve. Uma importação posterior desse ID poderá criar outro produto inativo. Nenhum pedido é enviado ao VR nesta etapa.
+
+Para instalar esta atualização, envie os arquivos de `public_html` do ZIP de atualização para `public_html/padaria` e os arquivos de `padaria-private` para sua pasta privada existente. Preserve `config.php` e `api/index.php`. Não há nova migração SQL para os vínculos.

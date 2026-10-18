@@ -37,11 +37,35 @@ function vr_status(PDO $db,array $config):array{
  $current=($config['vr_source_id']??'')===$row['source_id']&&($config['vr_store_id']??null)===(int)$row['store_id'];
  return ['ready'=>$current,'message'=>$current?'Leitura recebida.':'Origem configurada mudou; aguardando leitura dessa origem.','store'=>(int)$row['store_id'],'sequence'=>(int)$row['sequence_no'],'capturedAt'=>$row['captured_at'],'receivedAt'=>(int)$row['received_epoch'],'data'=>json_decode($row['payload'],true,512,JSON_THROW_ON_ERROR)];
 }
+// Explicit null unlinks even products originally imported with a vr: ID.
+function vr_product_link(array $p):?array{
+ if(array_key_exists('vrLink',$p)){
+  if($p['vrLink']===null)return null;
+  check(is_array($p['vrLink']),'Vínculo VR inválido.');
+  return ['store'=>vr_int($p['vrLink']['store']??null),'productId'=>vr_int($p['vrLink']['productId']??null)];
+ }
+ if(preg_match('/^vr:([1-9][0-9]*):([1-9][0-9]*)$/D',$p['id']??'',$m))return ['store'=>vr_int((int)$m[1]),'productId'=>vr_int((int)$m[2])];
+ return null;
+}
+function vr_catalog(array $s,array $incoming,int $store):array{
+ $links=[];$ids=[];
+ foreach($s['products'] as $i=>$p){$ids[$p['id']]=true;$link=vr_product_link($p);if($link){$key=$link['store'].':'.$link['productId'];check(!isset($links[$key]),'Código VR associado a mais de um produto.');$links[$key]=$i;}}
+ $imported=0;$blocked=0;
+ foreach($incoming as $p){$key=$store.':'.$p['id'];$index=$links[$key]??null;
+  if(!in_array($p['unit'],['un','kg'],true)||$p['priceCents']<=0){$blocked++;if($index!==null)$s['products'][$index]['active']=false;continue;}
+  $link=['store'=>$store,'productId'=>$p['id']];
+  if($index!==null){$s['products'][$index]=array_replace($s['products'][$index],['price'=>$p['priceCents'],'unit'=>$p['unit'],'vrLink'=>$link]);}
+  else{
+   if(!in_array('VR',$s['categories'],true))$s['categories'][]='VR';
+   $id='vr:'.$store.':'.$p['id'];if(isset($ids[$id]))$id=uuid();$ids[$id]=true;
+   $s['products'][]=['id'=>$id,'name'=>$p['name'],'description'=>'Código VR: '.$p['id'],'category'=>'VR','price'=>$p['priceCents'],'unit'=>$p['unit'],'photo'=>'','active'=>false,'vrLink'=>$link];$links[$key]=array_key_last($s['products']);
+  }$imported++;
+ }
+ check(count($s['categories'])<=100,'O cadastro excederia 100 categorias.');check(count($s['products'])<=500,'O catálogo excederia 500 produtos.');
+ return [$s,$imported,$blocked];
+}
 function vr_import(PDO $db,array $config,array $body,array $user):never{
  $status=vr_status($db,$config);check($status['ready']&&time()-($status['receivedAt']??0)<120&&time()-strtotime($status['capturedAt']??'')<180,'Leitura VR ausente ou desatualizada. Inicie a ponte e tente novamente.');
- $db->beginTransaction();$row=query($db,'SELECT * FROM app_data WHERE id=1 FOR UPDATE')->fetch();if(!$row)fail(503,'Instalação ainda não concluída.');if(($body['settingsVersion']??null)!==(int)$row['settings_version'])fail(409,'Catálogo alterado em outro dispositivo. Atualize e tente novamente.');$s=json_decode($row['settings'],true,512,JSON_THROW_ON_ERROR);$indexed=[];foreach($s['products'] as $i=>$p)$indexed[$p['id']]=$i;
- $imported=0;$blocked=0;if(!in_array('VR',$s['categories'],true))$s['categories'][]='VR';check(count($s['categories'])<=100,'O cadastro excederia 100 categorias.');
- foreach($status['data']['products'] as $p){$id='vr:'.$status['store'].':'.$p['id'];if(!in_array($p['unit'],['un','kg'],true)||$p['priceCents']<=0){$blocked++;if(isset($indexed[$id]))$s['products'][$indexed[$id]]['active']=false;continue;}
- $prior=isset($indexed[$id])?$s['products'][$indexed[$id]]:null;$product=['id'=>$id,'name'=>$p['name'],'description'=>$prior['description']??('Código VR: '.$p['id']),'category'=>$prior['category']??'VR','price'=>$p['priceCents'],'unit'=>$p['unit'],'photo'=>$prior['photo']??'','active'=>$prior['active']??false];if($prior)$s['products'][$indexed[$id]]=$product;else $s['products'][]=$product;$imported++;}
- check(count($s['products'])<=500,'O catálogo excederia 500 produtos.');query($db,'UPDATE app_data SET settings=?,settings_version=settings_version+1,version=version+1 WHERE id=1',[json_encode($s,JSON_THROW_ON_ERROR)]);query($db,'INSERT INTO audit (user_id,action,details) VALUES (?,?,?)',[$user['id'],'vr_import',json_encode(['store'=>$status['store'],'sequence'=>$status['sequence'],'imported'=>$imported,'blocked'=>$blocked])]);$db->commit();output(['imported'=>$imported,'blocked'=>$blocked]);
+ $db->beginTransaction();$row=query($db,'SELECT * FROM app_data WHERE id=1 FOR UPDATE')->fetch();if(!$row)fail(503,'Instalação ainda não concluída.');if(($body['settingsVersion']??null)!==(int)$row['settings_version'])fail(409,'Catálogo alterado em outro dispositivo. Atualize e tente novamente.');$s=json_decode($row['settings'],true,512,JSON_THROW_ON_ERROR);[$s,$imported,$blocked]=vr_catalog($s,$status['data']['products'],$status['store']);
+ query($db,'UPDATE app_data SET settings=?,settings_version=settings_version+1,version=version+1 WHERE id=1',[json_encode($s,JSON_THROW_ON_ERROR)]);query($db,'INSERT INTO audit (user_id,action,details) VALUES (?,?,?)',[$user['id'],'vr_import',json_encode(['store'=>$status['store'],'sequence'=>$status['sequence'],'imported'=>$imported,'blocked'=>$blocked])]);$db->commit();output(['imported'=>$imported,'blocked'=>$blocked]);
 }

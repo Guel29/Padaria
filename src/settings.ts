@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { products, categories } from './domain';
 import { serverMode, getRemote, useRemote, mutate } from './remote';
 import type { Product } from './domain';
-export type CatalogProduct = Product & { active: boolean };
+export type CatalogProduct = Product & { active: boolean; vrLink?: {store:number;productId:number}|null };
 export type DemoUser = { id: string; code: string; name: string; active: boolean };
 export type Settings = {
  store: { name: string; legalName: string; cnpj: string; address: string; city: string; phone: string; logo: string };
@@ -21,3 +21,9 @@ export function useSettings(){
 }
 /** Images are data URLs, bounded to avoid exhausting local demo storage. */
 export function readImage(file:File):Promise<string>{return new Promise((resolve,reject)=>{if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>1024*1024){reject(new Error('Use PNG, JPG ou WebP de até 1 MB.'));return;}const reader=new FileReader();reader.onerror=()=>reject(new Error('Não foi possível ler a imagem.'));reader.onload=()=>resolve(String(reader.result));reader.readAsDataURL(file);});}
+
+export function vrLinkOf(p:CatalogProduct): {store:number;productId:number}|null {
+ if(p.vrLink!==undefined)return p.vrLink;
+ const m=/^vr:([1-9]\d*):([1-9]\d*)$/.exec(p.id);
+ return m?{store:Number(m[1]),productId:Number(m[2])}:null;
+}
