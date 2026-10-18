@@ -6,7 +6,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlencode
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 
 ROOT = Path(__file__).resolve().parent
@@ -46,8 +46,6 @@ def validate_config(c):
     if u.scheme!='https' or not u.hostname or u.username or u.password or u.query or u.fragment or u.path not in ('','/'):
         raise SafeError('Use a origem HTTPS da Hostinger, sem caminhos, usuário ou senha.')
     if not isinstance(c['store'],int) or c['store']<1: raise SafeError('Código de loja inválido.')
-    ids=c['product_ids']
-    if not isinstance(ids,list) or not 1<=len(ids)<=200 or any(type(i)!=int or i<1 for i in ids): raise SafeError('Selecione de 1 a 200 IDs de produtos. Não existe importação irrestrita.')
     if not 1<=c['lookback_days']<=365 or not 20<=c['interval']<=3600: raise SafeError('Período ou intervalo inválido.')
     if c.get('sslmode','prefer') not in ('prefer','require','verify-ca','verify-full'):raise SafeError('Modo SSL inválido. Não use sslmode=disable.')
     uuid.UUID(c['source'])
@@ -61,8 +59,7 @@ def configure():
     port=int(input('Porta [8745]: ').strip() or '8745');database=input('Banco [vr]: ').strip() or 'vr'
     user=input('Usuário PostgreSQL: ').strip();password=getpass.getpass('Senha PostgreSQL (não aparece): ')
     if not user or not password: raise SafeError('Informe o usuário e a senha PostgreSQL.')
-    ids=sorted(set(int(v.strip()) for v in input('IDs de produtos autorizados, separados por vírgula (ex.: 439): ').split(',')))
-    c={'url':(input('Origem HTTPS [https://padaria.instara.com.br]: ').strip() or 'https://padaria.instara.com.br').rstrip('/'),'host':host,'port':port,'database':database,'user':user,'store':int(input('Loja [1]: ').strip() or '1'),'product_ids':ids,'lookback_days':45,'interval':30,'source':str(uuid.uuid4())}
+    c={'url':(input('Origem HTTPS [https://padaria.instara.com.br]: ').strip() or 'https://padaria.instara.com.br').rstrip('/'),'host':host,'port':port,'database':database,'user':user,'store':int(input('Loja [1]: ').strip() or '1'),'lookback_days':45,'interval':30,'source':str(uuid.uuid4())}
     validate_config(c);token=secrets.token_urlsafe(48)
     # Only the current Windows user can decrypt this file (not machine-wide DPAPI).
     encrypted=protect(json.dumps({'password':password,'token':token}).encode('utf-8'))
@@ -130,7 +127,7 @@ def collect(c,secret):
                 for table,required in SCHEMA.items():
                     if not required<=actual.get(table,set()):raise SafeError('Estrutura ou permissão divergente em %s.%s; confirme com o suporte.'%table)
                 prods=db.execute(PRODUCTS_SQL,(c['store'],c['product_ids'])).fetchall()
-                if len(prods)!=len(c['product_ids']):raise SafeError('Algum produto selecionado não existe ou não possui preço na loja. Nenhum dado foi enviado.')
+                if len(prods)!=len(c['product_ids']):raise SafeError('Algum ID vinculado no Admin não existe no VR ou não possui preço nesta loja. Confira os IDs e a loja no Admin. Nenhum dado foi enviado.')
                 barcodes=bounded(db.execute(BARCODES_SQL,(c['product_ids'],)).fetchall(),5000,'códigos de barras')
                 opened=bounded(db.execute(OPEN_SQL,(c['store'],)).fetchall(),1000,'fichas abertas')
                 oi=bounded(db.execute(OPEN_ITEMS_SQL,(c['store'],)).fetchall(),10000,'itens abertos')
@@ -162,6 +159,25 @@ def collect(c,secret):
 
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self,*args,**kwargs):raise SafeError('O endereço HTTPS redirecionou. Confira a URL; o token não será encaminhado a outro endereço.')
+def selection_config(c,secret):
+    # No fallback to the old local list: the authenticated Admin selection is authoritative.
+    validate_config(c)
+    query=urlencode({'action':'bridge_selection','source':c['source'],'store':c['store']})
+    req=Request(c['url']+'/api/index.php?'+query,headers={'X-Padaria-Bridge-Token':secret['token']},method='GET')
+    try:
+        with build_opener(NoRedirect()).open(req,timeout=30) as response:
+            raw=response.read(32769)
+            if len(raw)>32768:raise SafeError('Seleção do Admin excedeu o limite. Nenhum produto foi consultado.')
+            data=json.loads(raw)
+    except SafeError:raise
+    except HTTPError as e:raise SafeError('Não foi possível buscar os vínculos do Admin (HTTP %s). Atualize api.php e vr.php na Hostinger e confira token, origem e loja.'%e.code) from None
+    except Exception:raise SafeError('Não foi possível buscar os vínculos do Admin. Confira HTTPS e a conexão; a lista local não será utilizada.') from None
+    if not isinstance(data,dict) or data.get('source')!=c['source'] or type(data.get('store'))!=int or data['store']!=c['store']:raise SafeError('A seleção recebida não corresponde à origem e loja configuradas.')
+    ids=data.get('productIds')
+    if not isinstance(ids,list) or len(ids)>200 or any(type(i)!=int or not 1<=i<=9007199254740991 for i in ids) or len(set(ids))!=len(ids):raise SafeError('Lista de produtos do Admin inválida. Limite de 200 vínculos por loja.')
+    logging.info('Seleção do Admin: %s produtos vinculados na loja %s.',len(ids),c['store'])
+    return {**c,'product_ids':ids}
+
 def upload(c,secret,payload):
     raw=json.dumps(payload,ensure_ascii=False,separators=(',',':')).encode('utf-8')
     if len(raw)>8*1024*1024:raise SafeError('Leitura maior que 8 MB. Reduza o escopo; nada foi enviado.')
@@ -173,12 +189,12 @@ def upload(c,secret,payload):
     except Exception:raise SafeError('Envio sem confirmação. A pendência foi preservada para reenvio idempotente.') from None
     if ack.get('batchId')!=payload['batchId'] or ack.get('sequence')!=payload['sequence']:raise SafeError('Confirmação não corresponde à leitura enviada. Pendência preservada.')
 
-def cycle(c,secret,collector=collect,sender=upload):
+def cycle(c,secret,collector=collect,sender=upload,selector=selection_config):
     STATE.mkdir(exist_ok=True);pending=STATE/'pendente.json';checkpoint=STATE/'estado.json'
     if pending.exists():payload=json.loads(pending.read_text(encoding='utf-8'))
     else:
         previous=json.loads(checkpoint.read_text(encoding='utf-8')) if checkpoint.exists() else {'sequence':0}
-        payload={'schemaVersion':1,'source':c['source'],'store':c['store'],'sequence':previous['sequence']+1,'batchId':str(uuid.uuid4()),'capturedAt':datetime.now(timezone.utc).isoformat(),'data':collector(c,secret)}
+        payload={'schemaVersion':1,'source':c['source'],'store':c['store'],'sequence':previous['sequence']+1,'batchId':str(uuid.uuid4()),'capturedAt':datetime.now(timezone.utc).isoformat(),'data':collector(selector(c,secret),secret)}
         save_json(pending,payload)
     if payload['source']!=c['source']:raise SafeError('Pendência de outra instalação. Preserve os arquivos e confira o guia.')
     sender(c,secret,payload)
@@ -208,7 +224,7 @@ def main():
     c,secret=config()
     with single_instance():
         if args.check:
-            snapshot=collect(c,secret);print('Leitura validada, sem envio: %s produtos, %s fichas abertas, %s históricas.'%(len(snapshot['products']),len(snapshot['open']),len(snapshot['history'])));return
+            snapshot=collect(selection_config(c,secret),secret);print('Leitura validada, sem envio: %s produtos, %s fichas abertas, %s históricas.'%(len(snapshot['products']),len(snapshot['open']),len(snapshot['history'])));return
         while True:
             try:cycle(c,secret)
             except SafeError as e:

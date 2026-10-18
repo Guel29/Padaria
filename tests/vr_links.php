@@ -26,3 +26,9 @@ $unlinked=$s;$unlinked['products'][0]['vrLink']=null;[$out,$count,$blocked,$igno
 $empty=$s;$empty['products']=[];[$out,$count,$blocked,$ignored]=vr_catalog($empty,$incoming,1);expect($out===$empty&&$ignored===1);
 $incoming[0]['unit']=null;[$out,$count,$blocked]=vr_catalog($s,$incoming,1);expect($count===0&&$blocked===1&&!$out['products'][0]['active']);
 echo "VR link checks passed: matching, preservation, validation, duplicates, legacy, unlink, store isolation, unsafe units.\n";
+
+expect(vr_selection($s,1)===[439]);expect(vr_selection($s,2)===[]);
+$unlinked=$s;$unlinked['products'][0]['vrLink']=null;expect(vr_selection($unlinked,1)===[]);
+$inactive=$s;$inactive['products'][0]['active']=false;expect(vr_selection($inactive,1)===[439]);
+$many=$s;$many['products']=[];for($i=1;$i<=201;$i++)$many['products'][]=array_replace($p,['id'=>'local-'.$i,'vrLink'=>['store'=>1,'productId'=>$i]]);
+rejects(fn()=>vr_selection($many,1));echo "Admin selection checks passed: store filtering, unlinked exclusion, inactive links and bounds.\n";

@@ -25,7 +25,7 @@ Extraia em uma pasta do usuário do Windows e siga o arquivo LEIA-ME.md. A ordem
 1. Instale Python 3.12 (64 bits), com o launcher `py`.
 2. Execute Instalar.bat.
 3. Prefira uma conta PostgreSQL exclusiva de leitura. A ponte também aceita a conta atual `postgres`, conforme autorizado, mantendo as consultas em transações somente de leitura; isso não reduz as permissões administrativas da conta.
-4. Execute Configurar.bat. Informe host, porta, banco e essa conta. Selecione inicialmente apenas o produto 439 e loja 1 para validação.
+4. Execute Configurar.bat. Informe host, porta, banco e essa conta. Informe a loja 1 para validação. No Admin, cadastre um produto e associe loja 1 / ID VR 439; a ponte busca essa seleção automaticamente.
 5. A configuração gera `dados-locais/hostinger-config.txt`. Copie as três opções desse arquivo para **dentro do array** do config.php privado da Hostinger. Se já existirem, substitua seus valores em vez de duplicar as chaves. Não altere as credenciais MySQL.
 6. Execute Testar-Leitura.bat: ele não envia dados. Resolva qualquer erro de acesso/estrutura antes de prosseguir.
 7. Execute Iniciar.bat e mantenha a janela aberta para validar a primeira coleta.
@@ -54,8 +54,18 @@ Não temos acesso à rede da loja nem à sessão Windows: DPAPI, instalação/ag
 
 Em Produtos → Novo produto ou Editar, preencha **Loja VR** e **ID do produto VR** na seção Associação com o VR. Use o ID interno do produto, não o código de barras. A combinação loja/ID é única: se já foi importada, edite aquele cadastro ou remova seu vínculo antes de associá-la a outro produto. O ID interno local não é alterado e os pedidos anteriores são preservados.
 
-Inclua os IDs escolhidos em `product_ids` no `dados-locais/config.json` da ponte Windows (até 200 IDs), preservando os demais campos e arquivos. Feche a ponte antes de editar, teste a leitura e reinicie. Depois de receber uma leitura recente, clique em Importar / atualizar catálogo em Integração VR. A associação sozinha não amplia a seleção da ponte nem atualiza preço automaticamente.
+A ponte atualizada busca automaticamente no site os IDs vinculados no Admin para a loja configurada (até 200, incluindo produtos inativos). O campo antigo `product_ids` é ignorado e não precisa ser editado. A lista é obtida por HTTPS com o token da ponte, sem expor o catálogo a visitantes. Depois de receber uma leitura recente, clique em Importar / atualizar catálogo em Integração VR para aplicar preços e unidades; essa aplicação continua sendo uma ação explícita. Sem vínculos, a coleta contém zero produtos. Se um ID não existir no VR ou não tiver preço na loja, a coleta é interrompida para correção do cadastro.
 
 Produtos associados recebem preço e unidade do VR, preservando nome, descrição, foto, categoria e status. Unidade indefinida ou preço inválido desativa o produto associado para conferência. Para remover uma associação, deixe o campo ID do produto VR vazio e salve. Uma importação posterior desse ID será ignorada enquanto não existir outra associação. Nenhum pedido é enviado ao VR nesta etapa.
 
 Para instalar esta atualização, envie os arquivos de `public_html` do ZIP de atualização para `public_html/padaria` e os arquivos de `padaria-private` para sua pasta privada existente. Preserve `config.php` e `api/index.php`. Não há nova migração SQL para os vínculos.
+
+## Atualizar a seleção automática pelo Admin
+
+1. Feche a ponte no Windows.
+2. Envie os arquivos públicos e privados do ZIP de atualização para os destinos já indicados. É necessário atualizar tanto `api.php` quanto `vr.php` privados, preservando `config.php` e o ponto de entrada público existente.
+3. Extraia a nova ponte sobre a pasta atual, preservando integralmente `dados-locais`. Não execute Configurar.bat novamente: token, origem, senha e sequência permanecem os mesmos.
+4. Execute Testar-Leitura.bat. Ele consulta a seleção no site e lê o VR, sem enviar o espelho ou alterar produtos.
+5. Execute Iniciar.bat. A mensagem Seleção do Admin informa a quantidade de produtos vinculados. Depois de uma leitura confirmada, use Importar / atualizar catálogo no Admin.
+
+A nova lista é buscada a cada coleta. Se existir envio pendente, ele é confirmado primeiro; a lista atual será usada no ciclo seguinte. Uma falha na consulta de vínculos não usa a lista local antiga como alternativa. Não há nova migração SQL.

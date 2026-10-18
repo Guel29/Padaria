@@ -2,7 +2,7 @@
 
 ## O que esta etapa faz
 
-Lê produtos/preços selecionados, fichas abertas e fichas históricas vinculadas a itens de venda do VR PostgreSQL, e envia um espelho por HTTPS à Hostinger. A administração recebe uma seção **Integração VR**. Produtos podem ser importados por ação explícita do administrador; novos entram inativos para conferência.
+Lê produtos/preços selecionados, fichas abertas e fichas históricas vinculadas a itens de venda do VR PostgreSQL, e envia um espelho por HTTPS à Hostinger. A administração recebe uma seção **Integração VR**. Somente produtos cadastrados e associados por loja/ID no Admin são consultados e atualizados por ação explícita do administrador. Não cria produtos automaticamente.
 
 **Não envia pedidos do tablet ao VR, não paga, não cancela, não libera comandas locais e não grava no PostgreSQL.** O faturamento completo ainda não está integrado. Não use esta ponte como substituta do lançamento no VR/PDV. A existência de um vínculo de tabelas não constitui um contrato de escrita suportado pelo VR.
 
@@ -26,7 +26,7 @@ Host e porta observados: 192.168.30.250:8745, banco vr, loja 1. A conexão deve 
 2. Extraia este pacote em uma pasta do **seu usuário**, por exemplo `%LOCALAPPDATA%\PadariaPonte`. Não use uma pasta de acesso público/rede ou da hospedagem.
 3. Execute `Instalar.bat` para criar um ambiente Python local e instalar as dependências fixadas.
 4. Execute `Configurar.bat`. Informe o usuário PostgreSQL (inclusive `postgres`, se for sua conta atual) e sua senha. A senha não aparece na tela.
-5. Escolha explicitamente os IDs de produtos autorizados (por exemplo, 439 para o teste da coxinha). Até 200 por configuração; não há importação irrestrita. Loja padrão 1. O assistente gera um token aleatório e um identificador de origem, sem mostrar o token original.
+5. Informe a loja (padrão 1). A ponte consulta automaticamente os IDs associados no Admin para essa loja, até 200, incluindo inativos. Associe o ID 439 em um cadastro no Admin para testar; sem vínculos serão lidos zero produtos. O assistente gera um token aleatório e um identificador de origem, sem mostrar o token original.
 6. Copie as três opções de `dados-locais/hostinger-config.txt` para o array privado de config.php na Hostinger. Esse arquivo contém somente o hash do token, ID da origem e loja, não a senha do PostgreSQL nem o token original. Nunca envie `segredos.dat` ou config.php ao chat/GitHub.
 7. Execute `Testar-Leitura.bat`. Ele consulta com READ ONLY e não envia nada à Hostinger. Se faltar coluna/permissão, a ponte interrompe sem tentar adivinhar tabelas.
 8. Execute `Iniciar.bat`. O ciclo padrão é de 30 segundos; mantenha a janela aberta no primeiro teste. No administrador da padaria, abra **Integração VR**. A página verifica a última leitura a cada 15 segundos.
@@ -49,7 +49,7 @@ Não use SYSTEM nem outro usuário: as credenciais DPAPI só podem ser abertas p
 
 - Senha PostgreSQL e token de envio ficam criptografados com Windows DPAPI para o usuário atual. A proteção foi implementada com a API nativa; o instalador/configuração devem ser validados no Windows real. O arquivo público de configuração contém host, usuário, IDs e intervalo, sem senhas.
 - Não apague `dados-locais`: `estado.json` mantém a sequência e `pendente.json` conserva a leitura não confirmada, reenviada com o mesmo lote. O servidor não reaplica o mesmo lote nem aceita sequência antiga. Requisições HTTPS com redirecionamento são recusadas para não encaminhar token a outra origem.
-- Para mudar produtos/intervalo, pare a ponte e edite apenas `product_ids`, `lookback_days` ou `interval` em config.json. Preserve source, segredos.dat, estado.json e pendente.json. Resolva a pendência antes da mudança. Intervalo mínimo 20 segundos; período 1–365 dias; padrão 45 dias pela abertura da ficha histórica, não pela data de cancelamento.
+- Para mudar produtos, cadastre/edite os vínculos no Admin: a ponte busca a lista a cada nova coleta por HTTPS autenticado. O antigo `product_ids` é ignorado. Para mudar período/intervalo, pare a ponte e edite apenas `lookback_days` ou `interval` em config.json. Preserve source, segredos.dat, estado.json e pendente.json. Resolva a pendência antes da mudança. Intervalo mínimo 20 segundos; período 1–365 dias; padrão 45 dias pela abertura da ficha histórica, não pela data de cancelamento.
 - Um cancelamento posterior de ficha fora da janela não é capturado. Não há apuração financeira total nem importação de todas as vendas da loja; consultamos somente vínculos de fichas dentro da janela.
 - Limites por leitura: 200 produtos, 5.000 códigos de barras, 1.000 fichas abertas, 10.000 itens abertos, 2.000 fichas históricas, 20.000 itens históricos, 8 MB por envio. Ao exceder, a leitura falha inteira; nada é apresentado como completo. Evite intervalos muito curtos e acompanhe impacto no servidor VR.
 - Somente o usuário administrativo da aplicação pode consultar o espelho ou importar produtos. O token da ponte não permite administrar usuários/pedidos. O servidor restringe a uma origem e uma loja configuradas.
@@ -61,3 +61,7 @@ Não use SYSTEM nem outro usuário: as credenciais DPAPI só podem ser abertas p
 ## Evidência usada no mapeamento
 
 No teste informado: loja 1, ficha 9001, atendimento 1, item ficha 1, id_vendaitem 1421679, venda 215787, cupom 67716, ECF 112. O vínculo explícito é `ficha.fichaitem.id_vendaitem -> pdv.vendaitem.id -> pdv.venda.id`. Conferimos também loja/data/cupom/ECF; não usamos coincidência de valor/produto para associar vendas. A venda estava cancelada e seu item não: o status do cabeçalho não pode ser ignorado. Essa evidência sustenta leitura; não autoriza inserts no VR.
+
+## Atualização sem reconfigurar
+
+Atualize o site (arquivos públicos e api.php/vr.php privados) e substitua os arquivos da ponte com a janela fechada. Preserve `dados-locais` integralmente; não execute Configurar.bat novamente. Execute Testar-Leitura.bat e Iniciar.bat. A consulta da seleção exige o novo endpoint da Hostinger; se o site não estiver atualizado, a ponte mostra erro em vez de usar a lista antiga. Testar-Leitura apenas consulta a seleção e o banco VR, sem enviar dados. Envios pendentes são resolvidos antes de buscar uma nova lista.

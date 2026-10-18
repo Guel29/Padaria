@@ -60,6 +60,7 @@ try{
  if($method==='POST'&&!is_array($body))fail(400,'JSON inválido.');
  $db=new PDO('mysql:host='.$config['db_host'].';port='.($config['db_port']??3306).';dbname='.$config['db_name'].';charset=utf8mb4',$config['db_user'],$config['db_password'],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>false]);
  require_once __DIR__.'/vr.php';
+ if($action==='bridge_selection'){if($method!=='GET')fail(405,'Use GET.');vr_bridge_selection($db,$config);}
  if($action==='bridge'){if($method!=='POST')fail(405,'Use POST.');vr_receive($db,$config,$body,$raw);}
  if($action==='install'){
   if($method!=='POST')fail(405,'Use POST.');

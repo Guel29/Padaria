@@ -19,11 +19,14 @@ function vr_data(array $data):array{
  return $out;
 }
 function vr_available(PDO $db):bool{return (bool)query($db,"SHOW TABLES LIKE 'vr_sync'")->fetch();}
-function vr_receive(PDO $db,array $config,array $body,string $raw):never{
+function vr_auth(array $config):void{
  $hash=$config['vr_bridge_token_hash']??'';$source=$config['vr_source_id']??'';$store=$config['vr_store_id']??null;
  if(!is_string($hash)||!preg_match('/^[a-f0-9]{64}$/D',$hash)||!is_int($store)||!is_string($source)||$source==='')fail(503,'Ponte VR não configurada no servidor.');
  $header=$_SERVER['HTTP_X_PADARIA_BRIDGE_TOKEN']??'';
  if(!preg_match('/^[A-Za-z0-9_-]{40,200}$/D',$header)||!hash_equals($hash,hash('sha256',$header)))fail(401,'Credencial da ponte inválida.');
+}
+function vr_receive(PDO $db,array $config,array $body,string $raw):never{
+ vr_auth($config);$source=$config['vr_source_id'];$store=$config['vr_store_id'];
  if(!vr_available($db))fail(503,'Importe vr-schema.sql antes de iniciar a ponte.');
  check(($body['schemaVersion']??null)===1&&($body['source']??null)===$source&&($body['store']??null)===$store,'Origem ou loja da ponte inválida.');
  $seq=vr_int($body['sequence']??null);$batch=text($body['batchId']??'',36);check((bool)preg_match('/^[a-f0-9-]{36}$/D',$batch),'Lote inválido.');$at=vr_time($body['capturedAt']??null);check(strtotime($at)<=time()+300,'Relógio da ponte adiantado.');check(is_array($body['data']??null),'Leitura inválida.');$data=vr_data($body['data']);$digest=hash('sha256',$raw);
@@ -46,6 +49,18 @@ function vr_product_link(array $p):?array{
  }
  if(preg_match('/^vr:([1-9][0-9]*):([1-9][0-9]*)$/D',$p['id']??'',$m))return ['store'=>vr_int((int)$m[1]),'productId'=>vr_int((int)$m[2])];
  return null;
+}
+function vr_selection(array $settings,int $store):array{
+ $ids=[];foreach($settings['products'] as $p){$link=vr_product_link($p);if($link&&$link['store']===$store)$ids[$link['productId']]=true;}
+ check(count($ids)<=200,'Mais de 200 produtos vinculados nesta loja. Reduza a seleção no Admin.');
+ $result=array_keys($ids);sort($result,SORT_NUMERIC);return $result;
+}
+function vr_bridge_selection(PDO $db,array $config):never{
+ vr_auth($config);
+ check(($_GET['source']??null)===$config['vr_source_id']&&($_GET['store']??null)===(string)$config['vr_store_id'],'Origem ou loja da ponte inválida.');
+ $row=query($db,'SELECT settings,settings_version FROM app_data WHERE id=1')->fetch();if(!$row)fail(503,'Instalação ainda não concluída.');
+ $settings=json_decode($row['settings'],true,512,JSON_THROW_ON_ERROR);
+ output(['source'=>$config['vr_source_id'],'store'=>$config['vr_store_id'],'settingsVersion'=>(int)$row['settings_version'],'productIds'=>vr_selection($settings,$config['vr_store_id'])]);
 }
 function vr_catalog(array $s,array $incoming,int $store):array{
  $links=[];
