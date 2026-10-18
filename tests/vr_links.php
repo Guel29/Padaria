@@ -20,7 +20,9 @@ $valid=settings($out,['visits'=>[]]);expect($valid['products'][0]['vrLink']===$p
 $duplicate=$s;$duplicate['products'][]=array_replace($p,['id'=>'another']);rejects(fn()=>settings($duplicate,['visits'=>[]]));rejects(fn()=>vr_catalog($duplicate,$incoming,1));
 $bad=$s;$bad['products'][0]['vrLink']['productId']='439';rejects(fn()=>settings($bad,['visits'=>[]]));
 $legacy=$s;$legacy['products'][0]['id']='vr:1:439';unset($legacy['products'][0]['vrLink']);[$out]=vr_catalog($legacy,$incoming,1);expect(count($out['products'])===1&&$out['products'][0]['vrLink']===$p['vrLink']);
-$legacy['products'][0]['vrLink']=null;[$out]=vr_catalog($legacy,$incoming,1);expect(count($out['products'])===2&&$out['products'][0]['vrLink']===null&&$out['products'][1]['id']!=='vr:1:439');
-[$out]=vr_catalog($s,$incoming,2);expect(count($out['products'])===2&&!$out['products'][1]['active']);
+$legacy['products'][0]['vrLink']=null;[$out]=vr_catalog($legacy,$incoming,1);expect($out===$legacy);
+[$out]=vr_catalog($s,$incoming,2);expect($out===$s);
+$unlinked=$s;$unlinked['products'][0]['vrLink']=null;[$out,$count,$blocked,$ignored]=vr_catalog($unlinked,$incoming,1);expect($out===$unlinked&&$count===0&&$blocked===0&&$ignored===1);
+$empty=$s;$empty['products']=[];[$out,$count,$blocked,$ignored]=vr_catalog($empty,$incoming,1);expect($out===$empty&&$ignored===1);
 $incoming[0]['unit']=null;[$out,$count,$blocked]=vr_catalog($s,$incoming,1);expect($count===0&&$blocked===1&&!$out['products'][0]['active']);
 echo "VR link checks passed: matching, preservation, validation, duplicates, legacy, unlink, store isolation, unsafe units.\n";

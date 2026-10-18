@@ -40,7 +40,7 @@ Abra https://padaria.instara.com.br/#admin, atualize o aplicativo quando solicit
 - Produto 439: COXINHA DE FRANGO GRANDE, UN, R$ 4,50, mesmo com pesavel=true.
 - Ficha histórica 9001, cupom 67716 / ECF 112: cupom cancelado se ainda estiver dentro da janela e no mesmo estado do VR.
 
-Use **Importar / atualizar catálogo** para aplicar os produtos selecionados. Novos produtos entram **inativos** na categoria VR. Confira foto, categoria e preço em Produtos e ative-os. A importação não altera pedidos já lançados, não soma vendas e não encerra comandas.
+Use **Importar / atualizar catálogo** para atualizar somente os produtos já cadastrados e associados no Admin. Produtos sem vínculo são ignorados; nenhum produto ou categoria é criado. A importação não altera pedidos já lançados, não soma vendas e não encerra comandas.
 
 A coleta ocorre a cada 30 segundos; o painel consulta a cada 15 segundos. A atualização do catálogo exige a ação Importar/atualizar. A janela padrão é de 45 dias pela abertura das fichas: não cobre todos os eventos financeiros e não deve ser usada como faturamento total.
 
@@ -56,6 +56,6 @@ Em Produtos → Novo produto ou Editar, preencha **Loja VR** e **ID do produto V
 
 Inclua os IDs escolhidos em `product_ids` no `dados-locais/config.json` da ponte Windows (até 200 IDs), preservando os demais campos e arquivos. Feche a ponte antes de editar, teste a leitura e reinicie. Depois de receber uma leitura recente, clique em Importar / atualizar catálogo em Integração VR. A associação sozinha não amplia a seleção da ponte nem atualiza preço automaticamente.
 
-Produtos associados recebem preço e unidade do VR, preservando nome, descrição, foto, categoria e status. Unidade indefinida ou preço inválido desativa o produto associado para conferência. Para remover uma associação, deixe o campo ID do produto VR vazio e salve. Uma importação posterior desse ID poderá criar outro produto inativo. Nenhum pedido é enviado ao VR nesta etapa.
+Produtos associados recebem preço e unidade do VR, preservando nome, descrição, foto, categoria e status. Unidade indefinida ou preço inválido desativa o produto associado para conferência. Para remover uma associação, deixe o campo ID do produto VR vazio e salve. Uma importação posterior desse ID será ignorada enquanto não existir outra associação. Nenhum pedido é enviado ao VR nesta etapa.
 
 Para instalar esta atualização, envie os arquivos de `public_html` do ZIP de atualização para `public_html/padaria` e os arquivos de `padaria-private` para sua pasta privada existente. Preserve `config.php` e `api/index.php`. Não há nova migração SQL para os vínculos.

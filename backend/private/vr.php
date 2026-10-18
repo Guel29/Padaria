@@ -48,24 +48,19 @@ function vr_product_link(array $p):?array{
  return null;
 }
 function vr_catalog(array $s,array $incoming,int $store):array{
- $links=[];$ids=[];
- foreach($s['products'] as $i=>$p){$ids[$p['id']]=true;$link=vr_product_link($p);if($link){$key=$link['store'].':'.$link['productId'];check(!isset($links[$key]),'Código VR associado a mais de um produto.');$links[$key]=$i;}}
- $imported=0;$blocked=0;
+ $links=[];
+ foreach($s['products'] as $i=>$p){$link=vr_product_link($p);if($link){$key=$link['store'].':'.$link['productId'];check(!isset($links[$key]),'Código VR associado a mais de um produto.');$links[$key]=$i;}}
+ $imported=0;$blocked=0;$ignored=0;
  foreach($incoming as $p){$key=$store.':'.$p['id'];$index=$links[$key]??null;
-  if(!in_array($p['unit'],['un','kg'],true)||$p['priceCents']<=0){$blocked++;if($index!==null)$s['products'][$index]['active']=false;continue;}
-  $link=['store'=>$store,'productId'=>$p['id']];
-  if($index!==null){$s['products'][$index]=array_replace($s['products'][$index],['price'=>$p['priceCents'],'unit'=>$p['unit'],'vrLink'=>$link]);}
-  else{
-   if(!in_array('VR',$s['categories'],true))$s['categories'][]='VR';
-   $id='vr:'.$store.':'.$p['id'];if(isset($ids[$id]))$id=uuid();$ids[$id]=true;
-   $s['products'][]=['id'=>$id,'name'=>$p['name'],'description'=>'Código VR: '.$p['id'],'category'=>'VR','price'=>$p['priceCents'],'unit'=>$p['unit'],'photo'=>'','active'=>false,'vrLink'=>$link];$links[$key]=array_key_last($s['products']);
-  }$imported++;
+  if($index===null){$ignored++;continue;}
+  if(!in_array($p['unit'],['un','kg'],true)||$p['priceCents']<=0){$blocked++;$s['products'][$index]['active']=false;continue;}
+  $s['products'][$index]=array_replace($s['products'][$index],['price'=>$p['priceCents'],'unit'=>$p['unit'],'vrLink'=>['store'=>$store,'productId'=>$p['id']]]);$imported++;
  }
  check(count($s['categories'])<=100,'O cadastro excederia 100 categorias.');check(count($s['products'])<=500,'O catálogo excederia 500 produtos.');
- return [$s,$imported,$blocked];
+ return [$s,$imported,$blocked,$ignored];
 }
 function vr_import(PDO $db,array $config,array $body,array $user):never{
  $status=vr_status($db,$config);check($status['ready']&&time()-($status['receivedAt']??0)<120&&time()-strtotime($status['capturedAt']??'')<180,'Leitura VR ausente ou desatualizada. Inicie a ponte e tente novamente.');
- $db->beginTransaction();$row=query($db,'SELECT * FROM app_data WHERE id=1 FOR UPDATE')->fetch();if(!$row)fail(503,'Instalação ainda não concluída.');if(($body['settingsVersion']??null)!==(int)$row['settings_version'])fail(409,'Catálogo alterado em outro dispositivo. Atualize e tente novamente.');$s=json_decode($row['settings'],true,512,JSON_THROW_ON_ERROR);[$s,$imported,$blocked]=vr_catalog($s,$status['data']['products'],$status['store']);
- query($db,'UPDATE app_data SET settings=?,settings_version=settings_version+1,version=version+1 WHERE id=1',[json_encode($s,JSON_THROW_ON_ERROR)]);query($db,'INSERT INTO audit (user_id,action,details) VALUES (?,?,?)',[$user['id'],'vr_import',json_encode(['store'=>$status['store'],'sequence'=>$status['sequence'],'imported'=>$imported,'blocked'=>$blocked])]);$db->commit();output(['imported'=>$imported,'blocked'=>$blocked]);
+ $db->beginTransaction();$row=query($db,'SELECT * FROM app_data WHERE id=1 FOR UPDATE')->fetch();if(!$row)fail(503,'Instalação ainda não concluída.');if(($body['settingsVersion']??null)!==(int)$row['settings_version'])fail(409,'Catálogo alterado em outro dispositivo. Atualize e tente novamente.');$s=json_decode($row['settings'],true,512,JSON_THROW_ON_ERROR);[$s,$imported,$blocked,$ignored]=vr_catalog($s,$status['data']['products'],$status['store']);
+ query($db,'UPDATE app_data SET settings=?,settings_version=settings_version+1,version=version+1 WHERE id=1',[json_encode($s,JSON_THROW_ON_ERROR)]);query($db,'INSERT INTO audit (user_id,action,details) VALUES (?,?,?)',[$user['id'],'vr_import',json_encode(['store'=>$status['store'],'sequence'=>$status['sequence'],'imported'=>$imported,'blocked'=>$blocked,'ignored'=>$ignored])]);$db->commit();output(['imported'=>$imported,'blocked'=>$blocked,'ignored'=>$ignored]);
 }
